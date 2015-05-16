@@ -6,19 +6,29 @@
 //librerias cpp
 #include <iostream>
 #include <string>
-#include <typeinfo>
+
+
+
 int adyacencia[3][3]={{0,0,1},
 					  {0,0,2},
 					  {1,2,0}};
-#import "classes.cpp"
-
+//#import "classes.cpp"
+typedef struct n{
+	int a;
+	inline struct n operator >>(struct n* b){
+		b->a=a;
+		//irrelevante
+		struct n c;
+		return c;
+	}
+}nuevo;
 
 int main(int argc, char const *argv[])
 {
-	LAN l1[2];
-	Puente p(3);
-	Equipo a(1,&l1,&p);
-	Equipo b(2,&l1,&p);
-	a.sendMessage("holi",&b);
+	nuevo A,B;
+	A.a=1;
+	B.a=2;
+	A>>&B;
+	std::cout<<B.a<<std::endl;
 	return 0;
 }

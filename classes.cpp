@@ -31,6 +31,8 @@ void Equipo::reciveMessage(){
 
    printf("soy %d y recibí %s\n",this->thread_id,&(l->getMessage())[0u]);
 }
-void IPuente::repiteMessage(std::string msg,IEquipo* receptor){
-   std::cout<<"repitiendo..."<<std::endl;
+void IPuente::repiteMessage(IEquipo* emisor,IEquipo* receptor){
+   	//std::cout<<"repitiendo..."<<std::endl;
+	std::string mensaje=msg;
+	
 }
