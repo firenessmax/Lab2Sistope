@@ -81,13 +81,16 @@ int main(int argc, char const *argv[])
 	b1.start();*/
 	Equipo a(1,&red);
 	Equipo b(2,&red);
+	Equipo c(3,&red);
 
-	b.start(2);
 	a.start(2);
-	
+	b.start(2);
+	c.start(2);
+
 	
 	a.wait();
 	b.wait();
+	c.wait();
 
 	return 0;
 }
@@ -112,14 +115,19 @@ void Bridge::start(){
 void* startEquipo(void* arg){
 	Equipo* eq= (Equipo*) arg;
 	LAN* lan=eq->l;
+	int i=0;
 	while(eq->m_enviados||eq->m_recibidos){
 
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
 				eq->m_enviados--;
-				lan->loadMessage(((eq->getID()==1)?2:1),((eq->getID()==1)?"A->":"B->"));
-				printf("%cW;\n",(char)( 64+eq->getID() ) );
-
+				int id_receptor=(eq->getID()+i)%3+1;//<<-- el modulo indica el numero maximo de nodos
+				std::string s="";
+				s+=(char)(64+eq->getID());
+				s+="->";
+				lan->loadMessage(id_receptor,s);
+				//printf("%cW;\n",(char)( 64+eq->getID() ) );
+				i++;
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
 			continue;
@@ -129,10 +137,11 @@ void* startEquipo(void* arg){
 			if( lan->hayMenssage( eq->getID() ) ){
 				std::string msg=lan->getMessage();
 				eq->m_recibidos--;
-				printf("%cR;\n",(char)( 64+eq->getID() ) );
+				printf("%s%c;\n",&msg[0u],(char)( 64+eq->getID() ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
+
 		}
 	}
 	return NULL;
