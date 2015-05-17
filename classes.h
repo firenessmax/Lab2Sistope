@@ -43,13 +43,6 @@ class Equipo:public IEquipo{
       void reciveMessage();
       int getID(){return this->thread_id;}
 };
-class Puente:public IEquipo, public IPuente{
-public:
-   int id_puente;
-   LAN** redes;
-   Puente(int id){this->id_puente=id;}
-   Puente(int id,LAN[] l){this->id_puente=id;this->redes=l;}
-   void repiteMessage(std::string msg, IEquipo* receptor);
-};
+
 
 #endif
