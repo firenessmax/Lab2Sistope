@@ -6,22 +6,29 @@
 //librerias cpp
 #include <iostream>
 #include <string>
+//definicion de clases
+class LAN//clase para el paso de mensajes
+{
+private:
+	pthread_mutex_t Lmutex;//equivalente a declararlo e inicializarlo
+	std::string buffer;
+public:
+	LAN(){pthread_mutex_init(&(this->Lmutex), NULL);}
+
+	void loadMessage(std::string msg){this->buffer=msg;}
+	std::string getMessage(){return this->buffer;}
+
+	//bloquear LAN
+	int tomarLinea(){return pthread_mutex_lock(&mylock);}
+	void soltarLinea(){return pthread_mutex_lock(&mylock);}
+	//estas funciones equivalen a lock y unlock pero para una LAN especifica permitiendo declarar secciones criticas de LAN
+};
+
+//prototipo de funciones
+//la idea es hacer que las funciones que daban referencias cruzadas hacerlas al estilo C 
 
 
 
-int adyacencia[3][3]={{0,0,1},
-					  {0,0,2},
-					  {1,2,0}};
-//#import "classes.cpp"
-typedef struct n{
-	int a;
-	inline struct n operator >>(struct n* b){
-		b->a=a;
-		//irrelevante
-		struct n c;
-		return c;
-	}
-}nuevo;
 
 int main(int argc, char const *argv[])
 {
@@ -32,3 +39,5 @@ int main(int argc, char const *argv[])
 	std::cout<<B.a<<std::endl;
 	return 0;
 }
+//clases
+//funciones
