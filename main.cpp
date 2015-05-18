@@ -47,12 +47,15 @@ class Equipo{
 
 class Bridge{
 		pthread_t thread;
+		
 	public:
 		int B_id;
 		int m_recibidos;
 		int m_enviados;
-		LAN** redes;
-		Bridge(int id,LAN** l){this->B_id=id;this->redes=l;} 
+		int lanUsadas;
+		LAN* redes[3];
+		Bridge(int id,LAN* l1,LAN* l2);
+		Bridge(int id,LAN* l1,LAN* l2,LAN* l3);
 		void start();
 		void wait(){pthread_join(this->thread, NULL);}
 };
@@ -70,22 +73,26 @@ void repiteMessage(std::string msg, IEquipo* receptor);
 */
 //fin de malas
 
-//puede que las use para la implementacion de start()
+//
+int indices[3]={1,1,2};
+
 int main(int argc, char const *argv[])
 {
 	//<<--- inserte getopt aqui
 
-	LAN red;
-	/*
-	Bridge b1(3,(LAN**)red);
-	b1.start();*/
+	LAN red,red2;
+	Bridge B1 (4,&red,&red2);
+	B1.start();
 	Equipo a(1,&red);
 	Equipo b(2,&red);
-	Equipo c(3,&red);
 
-	a.start(2);
-	b.start(2);
-	c.start(2);
+	Equipo c(3,&red2);
+
+	a.start(1);
+	
+	b.start(1);
+	
+	c.start(1);
 
 	
 	a.wait();
@@ -94,12 +101,14 @@ int main(int argc, char const *argv[])
 
 	return 0;
 }
+
+//clases
 LAN::LAN(){
+	this->id_receptor=0;
 	pthread_mutex_init(&(this->Lmutex), NULL);
 	pthread_mutex_init(&(this->Rmutex), NULL);
 	pthread_mutex_init(&(this->Wmutex), NULL);
 }
-//clases
 void Equipo::start(int cantMensajes){
 	this->m_recibidos=cantMensajes;
 	this->m_enviados=cantMensajes;
@@ -107,17 +116,28 @@ void Equipo::start(int cantMensajes){
 	//printf("Hello World! It's me, thread with argument %d!\n", this->E_id);
 }
 void Bridge::start(){
-	int rc 	= 	pthread_create(&this->thread, NULL,startBridge, NULL/*argumento*/ );
+	int rc 	= 	pthread_create(&this->thread, NULL,startBridge, (void*) this  );
 	//printf("Hello World! It's me, thread with argument %d!\n", this->B_id);
 }
-
+Bridge::Bridge(int id,LAN* l1,LAN* l2){
+	this->B_id=id;
+	this->lanUsadas=2;
+	this->redes[0]=l1;
+	this->redes[1]=l2;
+}
+Bridge::Bridge(int id,LAN* l1,LAN* l2,LAN* l3){
+	this->B_id=id;
+	this->lanUsadas=3;
+	this->redes[0]=l1;
+	this->redes[1]=l2;
+	this->redes[2]=l3;
+}
 //funciones
 void* startEquipo(void* arg){
 	Equipo* eq= (Equipo*) arg;
 	LAN* lan=eq->l;
 	int i=0;
 	while(eq->m_enviados||eq->m_recibidos){
-
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
 				eq->m_enviados--;
@@ -126,7 +146,6 @@ void* startEquipo(void* arg){
 				s+=(char)(64+eq->getID());
 				s+="->";
 				lan->loadMessage(id_receptor,s);
-				//printf("%cW;\n",(char)( 64+eq->getID() ) );
 				i++;
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
@@ -148,6 +167,23 @@ void* startEquipo(void* arg){
 }
 
 void* startBridge(void* arg){
-	printf("uninplemented function startBridge\n");
+	Bridge* b=(Bridge*) arg;
+	int dest[3];
+	std::string mensajes[3];//buffer message para evitar dentro de lo posible el deadlock
+	//entrada1
+	while(true){//revisar la condicion de termino... yo creo que parecido a los anteriores quizas contando los que corresponde y los del buffer algo asi
+
+		if(b->redes[0]->id_receptor){
+			printf("(?)->%c\n",(char)(b->redes[0]->id_receptor+64));
+			if(!pthread_mutex_trylock(&(b->redes[0]->Rmutex))){
+				printf("*(?)->%c\n",(char)(b->redes[0]->id_receptor+64));
+				LAN* lan=b->redes[0];
+				if(lan->hayMenssage(3))//deberia comprobarse para todos los que no pertenecen a la red 0
+					mensajes[0]=lan->getMessage();
+				pthread_mutex_unlock(&(b->redes[0]->Wmutex));
+				pthread_mutex_unlock(&(b->redes[0]->Rmutex));
+			}
+		}
+	}
 	return NULL;
 }
