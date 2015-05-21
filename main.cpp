@@ -103,7 +103,7 @@ void instrucciones();
 //
 int indices[3]={1,1,2};
 
-int main(int argc, char const *argv[])
+int main(int argc, char* const *argv)
 {
 	int opt= 0;
     /* 0 = false
