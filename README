@@ -1,0 +1,19 @@
+README
+
+Compilar:
+Para compilar los archivos, es necesario ejecutar el comando "make" desde la consola, el cual se encarga de crear la carpeta build y compilar los distintos programas y guardarlos en esta dirección.
+
+Ejecutar:
+Al momento de ejectuar el programa, este debe ejecutarse dentro de la carpeta Build que generará el makefile, existen dos casos:
+
+*Caso 1: Correr el Programa
+	Para iniciar el programa, solo debe escribirse los caracteres "./" el nombre del programa principal (main.o), luego escribir "--on" acompañado de la cantidad de mensajes que desea enviarse, ejemplo:
+		"Si se desea enviar 5 mensajes, es necesario escribir:"
+							./main.o --on 4
+	En caso de escribirse letras, se considera como un número 0, lo cual indicará que no es un número válido y debe escogerse otro.
+
+*Caso 3: Ayuda
+	En caso de estar ejecutando el archivo y no recordar la forma en que se escriben los comandos, se pueden escribir los caracteres "./" el nombre del programa principal (main.o), luego escribir "--help" que mostrará por pantalla la forma en que debe escribirse.
+		"Para acceder a la ayuda debe escribirse:"
+							./main.o --help
+		
