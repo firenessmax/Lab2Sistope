@@ -103,25 +103,25 @@ void instrucciones();
 //
 int indices[3]={1,1,2};
 
-int main(int argc, char* const *argv)
-{
+int main(int argc, char *argv[]){ 
 	int opt= 0;
     /* 0 = false
     1 = true */
     int on = 0;
     int help = 0;
     int cantidadDeMensajes;
-    char *nombre, *numero;
+    char *numero;
     //struct para las opciones que existen
     static struct option long_options[] = {
-        {"on",     required_argument,  0,  'o' },
+        {"on",     required_argument,	0,  'o' },
         {"help",    no_argument,		0,  'h' },
-        {0,         0,                  0,   0  }
+        {0,         0,                 	0,   0  }
     };
 
     int long_index =0;
     //captura de las posibles respuestas
     while ((opt = getopt_long_only(argc, argv,"", long_options, &long_index )) != -1) {
+        
         switch (opt) {
              case 'o' : 
                     on = 1;
@@ -132,15 +132,14 @@ int main(int argc, char* const *argv)
                     help = 1;
                     break;
              default: 
+             		
                     instrucciones(); 
                     exit(EXIT_FAILURE);
                     break;
         }
     }
-    if (nombre == NULL ) {
-        instrucciones();
-        exit(EXIT_FAILURE);
-    }
+    printf("on : %d\n",opt);
+   
 
     if (on == 1) {
         if(cantidadDeMensajes==0)
