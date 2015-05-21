@@ -58,7 +58,12 @@ class Equipo{
 		int m_recibidos;
 		int m_enviados;
 		LAN* l;
-		Equipo(int id,LAN* l){this->E_id=id;this->l=l;} 
+		Equipo(int id,LAN* l){
+			this->E_id=id;
+			//char c= 64+id+((id>4)?(id>8)?2:1:0);
+			//printf("%d:%c\n", id,c);
+			this->l=l;
+		} 
 		void start(int cantMensajes);
 		void wait(){pthread_join(this->thread, NULL);}
 		void reciveMessage();//irr
@@ -256,14 +261,14 @@ void iniciar(int cantidadDeMensajes){
     //red3
     Equipo i(9,&red3);
     Equipo j(10,&red3);
-    Equipo k(10,&red3);
-    Equipo l(11,&red3);
+    Equipo k(11,&red3);
+    Equipo l(12,&red3);
     //red4
-    Equipo m(12,&red4);
-    Equipo n(13,&red4);
+    Equipo m(13,&red4);
+    Equipo n(14,&red4);
     Equipo o(15,&red4);
     Equipo p(16,&red4);
-
+    //return;
     a.start(cantidadDeMensajes);
     b.start(cantidadDeMensajes);
     c.start(cantidadDeMensajes);
@@ -310,12 +315,12 @@ void* startEquipo(void* arg){
 				int id_receptor=(eq->getID()+i)%16+1+i/16;//<<-- el modulo indica el numero maximo de nodos
 				std::string s="";
 				int id=eq->getID();
-				s+=(char)(64+id+((id>4)?(id>8)?(id>12)?3:2:1:0));
+				s+=(char)(64+id+((id>4)?(id>8)?2:1:0));
 				s+="->";
 				Mensaje m;
 				m.id_receptor=id_receptor;
 				m.buffer=s;
-				char c=64+id_receptor+((id_receptor>4)?(id_receptor>8)?(id_receptor>12)?3:2:1:0);
+				char c=64+id_receptor+((id_receptor>4)?(id_receptor>8)?2:1:0);
 				lan->loadMessage(m);
 				printf( "(%s%c)\n", s.c_str(),c );
 				i++;
@@ -329,7 +334,7 @@ void* startEquipo(void* arg){
 				std::string msg=lan->getMessage();
 				eq->m_recibidos--;
 				int id=eq->getID();
-				printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?(id>12)?3:2:1:0) ));
+				printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
@@ -382,7 +387,7 @@ void* startBridge(void* arg){
 						m.buffer=s;
 						m.id_receptor=id_R;
 						b->encolarMensaje(m);
-						printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?(id_R>12)?3:2:1:0) ));
+						printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?2:1:0) ));
 						pthread_mutex_unlock(&(b->redes[i]->Wmutex));
 					}
 					pthread_mutex_unlock(&(b->redes[i]->Rmutex));
