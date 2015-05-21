@@ -12,6 +12,7 @@
 typedef struct m
 {
 	std::string buffer;
+	std::string bufferPuente;
 	int id_receptor;
 	int id_lan;;
 	int id_b1;;
@@ -23,7 +24,7 @@ class LAN//clase para el paso de mensajes
 {
 private:
 	Mensaje M_buffer;
-	std::string buffer;
+	std::string bufferPuente;
 public:
 	pthread_mutex_t Lmutex;//equivalente a declararlo e inicializarlo
 	pthread_mutex_t Rmutex;
@@ -33,9 +34,6 @@ public:
 	LAN(int id);
 	void loadMessage(Mensaje M_buffer){
 		this->M_buffer=M_buffer;
-	}
-	void loadMessage(int id_receptor, std::string msg){
-		this->id_receptor=id_receptor;this->buffer=msg;
 	}
 	int hayMenssage(int eq_id){return eq_id==this->M_buffer.id_receptor;}
 	std::string getMessage(){
@@ -54,6 +52,9 @@ public:
 	int getIdReceptor(){
 		int r=M_buffer.id_receptor;
 		return r;
+	}
+	std::string getPuentes(){
+		return M_buffer.bufferPuente;
 	}
 
 	//bloquear LAN
@@ -383,7 +384,8 @@ void* startEquipo(void* arg){
 						}
 					}
 				}
-				printf( "%s\n", msg.c_str());
+				std::string puentes=lan->getPuentes();
+				printf( "%s%s\n", msg.c_str(), puentes.c_str());
 				//printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
@@ -409,14 +411,9 @@ void* startBridge(void* arg){
 					//eq->m_enviados--;
 					//printf("B1(%s%c)\n", m.buffer.c_str(),(char)(64+m.id_receptor));
 						//agregar la id del bridge, si esq pasa por el
-						if(m.id_b1==0){
-							m.id_b1 = b->B_id;
-						} else {
-							if(m.id_b2==0){
-								m.id_b2 = b->B_id;
-							}
-						}
+						m.bufferPuente+=(b->B_id==1)?", pasa por el puente 1":", pasa por el puente 2";
 					lan->loadMessage(m);
+
 					
 					//i++;
 				}else{
@@ -444,6 +441,7 @@ void* startBridge(void* arg){
 						Mensaje m;
 						m.buffer=s;
 						m.id_receptor=id_R;
+						m.bufferPuente=lan->getPuentes();
 						b->encolarMensaje(m);
 						//printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?2:1:0) ));
 						pthread_mutex_unlock(&(b->redes[i]->Wmutex));
