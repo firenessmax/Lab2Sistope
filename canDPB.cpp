@@ -40,5 +40,5 @@ int cantidadDeDatosPorBridge(int n){
 	aux3=(n-1)/15;
 	contador=contador+(48*aux3);
 
-	return contador;
+	return 4*contador;
 }
