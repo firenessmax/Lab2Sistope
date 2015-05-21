@@ -312,7 +312,9 @@ void* startEquipo(void* arg){
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
 				eq->m_enviados--;
-				int id_receptor=((eq->getID()+i)%16+i/16)%16+1;//<<-- el modulo indica el numero maximo de nodos
+				int idR=eq->getID();
+				if((i+1)%16==0)i++;
+				int id_receptor=(idR+i)%16+1;//<<-- el modulo indica el numero maximo de nodos
 				if(id_receptor==17)printf("%d\n", i);
 				std::string s="";
 				int id=eq->getID();
@@ -335,7 +337,7 @@ void* startEquipo(void* arg){
 				std::string msg=lan->getMessage();
 				eq->m_recibidos--;
 				int id=eq->getID();
-				printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
+				//printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
