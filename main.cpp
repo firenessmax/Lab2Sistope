@@ -38,7 +38,10 @@ public:
 		M_buffer.id_receptor=0;
 		return this->M_buffer.buffer;
 	}
-	int getIdReceptor(){return this->M_buffer.id_receptor;}
+	int getIdReceptor(){
+		int r=M_buffer.id_receptor;
+		return r;
+	}
 
 	//bloquear LAN
 	int tomarLinea(){return pthread_mutex_trylock(&(this->Lmutex));}
@@ -70,7 +73,7 @@ class Bridge{
 		int m_recibidos;
 		int m_enviados;
 		int lanUsadas;
-		int dir[3];
+		int dir[16];
 		LAN* redes[3];
 		Bridge(int id,LAN* l1,LAN* l2);
 		Bridge(int id,LAN* l1,LAN* l2,LAN* l3,int dirs[]);
@@ -157,6 +160,7 @@ int main(int argc, char *argv[]){
 
 //clases
 LAN::LAN(){
+	this->M_buffer.id_receptor=0;
 	this->id_receptor=0;
 	pthread_mutex_init(&(this->Lmutex), NULL);
 	pthread_mutex_init(&(this->Rmutex), NULL);
@@ -303,15 +307,17 @@ void* startEquipo(void* arg){
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
 				eq->m_enviados--;
-				int id_receptor=(eq->getID()+i)%3+1+i/16;//<<-- el modulo indica el numero maximo de nodos
+				int id_receptor=(eq->getID()+i)%16+1+i/16;//<<-- el modulo indica el numero maximo de nodos
 				std::string s="";
-				s+=(char)(64+eq->getID());
+				int id=eq->getID();
+				s+=(char)(64+id+((id>4)?(id>8)?(id>12)?3:2:1:0));
 				s+="->";
 				Mensaje m;
 				m.id_receptor=id_receptor;
 				m.buffer=s;
+				char c=64+id_receptor+((id_receptor>4)?(id_receptor>8)?(id_receptor>12)?3:2:1:0);
 				lan->loadMessage(m);
-				printf("(%s%c)\n", s.c_str(),(char)(64+id_receptor));
+				printf( "(%s%c)\n", s.c_str(),c );
 				i++;
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
@@ -322,7 +328,8 @@ void* startEquipo(void* arg){
 			if( lan->hayMenssage( eq->getID() ) ){
 				std::string msg=lan->getMessage();
 				eq->m_recibidos--;
-				printf("%s%c;\n",&msg[0u],(char)( 64+eq->getID() ));
+				int id=eq->getID();
+				printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?(id>12)?3:2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
@@ -334,7 +341,6 @@ void* startEquipo(void* arg){
 
 void* startBridge(void* arg){
 	Bridge* b=(Bridge*) arg;
-	int dest[3];
 	//entrada1
 	while(true){//revisar la condicion de termino... yo creo que parecido a los anteriores quizas contando los que corresponde y los del buffer algo asi
 		//escritura
@@ -364,18 +370,19 @@ void* startBridge(void* arg){
 		{
 			int id_R=b->redes[i]->getIdReceptor();
 			if(id_R){
+
 				//printf("(?)->%c\n",(char)(id_R+64));
 				if(!pthread_mutex_trylock(&(b->redes[i]->Rmutex))){
 					//printf("dir[C]=%d\n",b->dir[id_R]);
 					LAN* lan=b->redes[i];
-					if(b->dir[id_R-1]!=0)//deberia comprobarse para todos los que no pertenecen a la red 0
+					if(b->dir[id_R-1]!=i)//deberia comprobarse para todos los que no pertenecen a la red 0
 					{	
 						std::string s=lan->getMessage();
 						Mensaje m;
 						m.buffer=s;
 						m.id_receptor=id_R;
 						b->encolarMensaje(m);
-						//printf("encolando: %s%c\n",&s[0u],(char)(64+id_R));
+						printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?(id_R>12)?3:2:1:0) ));
 						pthread_mutex_unlock(&(b->redes[i]->Wmutex));
 					}
 					pthread_mutex_unlock(&(b->redes[i]->Rmutex));
