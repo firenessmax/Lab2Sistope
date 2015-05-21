@@ -312,7 +312,8 @@ void* startEquipo(void* arg){
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
 				eq->m_enviados--;
-				int id_receptor=(eq->getID()+i)%16+1+i/16;//<<-- el modulo indica el numero maximo de nodos
+				int id_receptor=((eq->getID()+i)%16+i/16)%16+1;//<<-- el modulo indica el numero maximo de nodos
+				if(id_receptor==17)printf("%d\n", i);
 				std::string s="";
 				int id=eq->getID();
 				s+=(char)(64+id+((id>4)?(id>8)?2:1:0));
@@ -387,7 +388,7 @@ void* startBridge(void* arg){
 						m.buffer=s;
 						m.id_receptor=id_R;
 						b->encolarMensaje(m);
-						printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?2:1:0) ));
+						//printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?2:1:0) ));
 						pthread_mutex_unlock(&(b->redes[i]->Wmutex));
 					}
 					pthread_mutex_unlock(&(b->redes[i]->Rmutex));
