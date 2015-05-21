@@ -7,10 +7,23 @@
 #include <iostream>
 #include <string>
 //definicion de clases
+typedef struct m
+{
+	std::string buffer;
+	int id_receptor;
+	/*inline struct m operator =(struct m){
+		struct m r;
+		r.buffer=m.buffer;
+		r.id_receptor=m.id_receptor;
+		return r;
+	}*/
+} Mensaje;
+//a=b
+
 class LAN//clase para el paso de mensajes
 {
 private:
-	
+	Mensaje M_buffer;
 	std::string buffer;
 public:
 	pthread_mutex_t Lmutex;//equivalente a declararlo e inicializarlo
@@ -18,11 +31,17 @@ public:
 	pthread_mutex_t Wmutex;
 	int id_receptor;
 	LAN();
+	void loadMessage(Mensaje M_buffer){
+		this->M_buffer=M_buffer;
+	}
 	void loadMessage(int id_receptor, std::string msg){
 		this->id_receptor=id_receptor;this->buffer=msg;
 	}
-	int hayMenssage(int eq_id){return eq_id==id_receptor;}
-	std::string getMessage(){id_receptor=0;return this->buffer;}
+	int hayMenssage(int eq_id){return eq_id==this->M_buffer.id_receptor;}
+	std::string getMessage(){
+		M_buffer.id_receptor=0;
+		return this->M_buffer.buffer;
+	}
 	//bloquear LAN
 	int tomarLinea(){return pthread_mutex_trylock(&(this->Lmutex));}
 	void soltarLinea(){pthread_mutex_unlock(&(this->Lmutex));}
@@ -41,13 +60,13 @@ class Equipo{
 		Equipo(int id,LAN* l){this->E_id=id;this->l=l;} 
 		void start(int cantMensajes);
 		void wait(){pthread_join(this->thread, NULL);}
-		void reciveMessage();
+		void reciveMessage();//irr
 		int getID(){return this->E_id;}
 };
 
 class Bridge{
 		pthread_t thread;
-		
+		std::vector<Mensaje> cola;
 	public:
 		int B_id;
 		int m_recibidos;
@@ -63,7 +82,7 @@ class Bridge{
 //prototipo de funciones
 //la idea es hacer que las funciones que daban referencias cruzadas hacerlas al estilo C 
 
-//malas... editar
+
 void* startEquipo(void* arg);
 void* startBridge(void* arg);
 void sendMessage( Equipo* emisor,Equipo* receptor, std::string msg);
@@ -141,7 +160,7 @@ void* startEquipo(void* arg){
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
 				eq->m_enviados--;
-				int id_receptor=(eq->getID()+i)%3+1;//<<-- el modulo indica el numero maximo de nodos
+				int id_receptor=(eq->getID()+i)%3+1+i/16;//<<-- el modulo indica el numero maximo de nodos
 				std::string s="";
 				s+=(char)(64+eq->getID());
 				s+="->";
