@@ -75,7 +75,7 @@ class Bridge{
 		std::vector<Mensaje> cola;
 	public:
 		int B_id;
-		int m_recibidos;
+		int m_para_enviar;
 		int m_enviados;
 		int lanUsadas;
 		int dir[16];
@@ -104,12 +104,12 @@ void* startEquipo(void* arg);
 void* startBridge(void* arg);
 void sendMessage( Equipo* emisor,Equipo* receptor, std::string msg);
 
-int cantidadDeDatosPorBridge(int n);
 void iniciar(int cantidadMensajes);
 void instrucciones();
 
 //
 int indices[3]={1,1,2};
+int enEjecucion=16;
 
 int main(int argc, char *argv[]){ 
 	int opt= 0;
@@ -178,7 +178,6 @@ void Equipo::start(int cantMensajes){
 	//printf("Hello World! It's me, thread with argument %d!\n", this->E_id);
 }
 void Bridge::start(){
-	
 	int rc 	= 	pthread_create(&this->thread, NULL,startBridge, (void*) this  );
 	//printf("Hello World! It's me, thread with argument %d!\n", this->B_id);
 }
@@ -200,37 +199,6 @@ Bridge::Bridge(int id,LAN* l1,LAN* l2,LAN* l3,int dirs[]){
 	}
 }
 //funciones
-int cantidadDeDatosPorBridge(int n){
-	int contador=0;
-	int aux1, aux2, aux3;
-	aux1=n;
-	if(aux1%15==0)
-		aux1=15;
-	else
-		aux1=aux1%15;
-	aux2=aux1;
-	if(aux2>12)
-		aux2=12;
-	else
-		aux2=aux2;
-	contador+=aux2;
-	for (int i = 1; i < 4; i++){
-		aux2=(aux1-i);
-		if(aux2<0){
-			aux2=0;
-		} else {
-			if(aux2>12)
-				aux2=12;
-			else
-				aux2=aux2;
-		}
-		contador+=aux2;
-	}
-	aux3=(n-1)/15;
-	contador=contador+(48*aux3);
-
-	return 4*contador;
-}
 
 void instrucciones() {
     printf("Para utilizar el programa, es necesario escribir: \n./nombrePrograma.o --on cantidadDeMensajes\n");
@@ -238,8 +206,7 @@ void instrucciones() {
 
 void iniciar(int cantidadDeMensajes){
 
-    int laCantidadDeDatosPorBridge=cantidadDeDatosPorBridge(cantidadDeMensajes);
-    printf("laCantidadDeDatosPorBridge: %d\n", laCantidadDeDatosPorBridge);
+    printf("Se inicia la ejecucion\n");
 
     LAN red1,red2,red3,red4,red5;
     int dirsB1[16]={0,0,0,0,  1,1,1,1,   2,2,2,2,   2,2,2,2};
@@ -302,6 +269,13 @@ void iniciar(int cantidadDeMensajes){
     n.wait();
     o.wait();
     p.wait();
+
+    B1.wait();
+    B2.wait();
+
+
+
+
 }
 //hilos
 void* startEquipo(void* arg){
@@ -325,7 +299,7 @@ void* startEquipo(void* arg){
 				m.buffer=s;
 				char c=64+id_receptor+((id_receptor>4)?(id_receptor>8)?2:1:0);
 				lan->loadMessage(m);
-				printf( "(%s%c)\n", s.c_str(),c );
+				//printf( "(%s%c)\n", s.c_str(),c );
 				i++;
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
@@ -337,22 +311,26 @@ void* startEquipo(void* arg){
 				std::string msg=lan->getMessage();
 				eq->m_recibidos--;
 				int id=eq->getID();
-				//printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
+				printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
 
 		}
 	}
+	enEjecucion--;//quita uno de la ejecucion;
 	return NULL;
 }
 
 void* startBridge(void* arg){
 	Bridge* b=(Bridge*) arg;
 	//entrada1
-	while(true){//revisar la condicion de termino... yo creo que parecido a los anteriores quizas contando los que corresponde y los del buffer algo asi
+	int mensajes=b->m_para_enviar;
+
+	while(enEjecucion){//mientras existan equipos en ejecucion
 		//escritura
 		if(b->hayMensajes()){//si hay mensajes en la cola
+			//printf("B%d:%d\n",b->B_id,mensajes);
 			Mensaje m=b->tomarMensaje();
 			int lanDestino=b->dir[m.id_receptor-1];
 			LAN* lan=b->redes[lanDestino];
@@ -360,10 +338,9 @@ void* startBridge(void* arg){
 				//printf("disponiendose a repetir\n");
 				if(!pthread_mutex_trylock(&(lan->Wmutex))){
 					//eq->m_enviados--;
-					//printf("B1(%s%c)\n", m.buffer.c_str(),(char)(64+m.id_receptor));
+					//printf("B%d(%s%c)\n", b->B_id, m.buffer.c_str(),(char)(64+m.id_receptor));
+					mensajes--;
 					lan->loadMessage(m);
-					
-					//i++;
 				}else{
 					//printf("oow\n");
 					b->encolarMensaje(m);//devolverlo
@@ -399,5 +376,6 @@ void* startBridge(void* arg){
 		}
 		
 	}
+	//printf("Fin del Bridge B%d\n", b->B_id);
 	return NULL;
 }
