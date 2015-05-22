@@ -1,0 +1,17 @@
+Equipo B manda mensaje a C mediante la LAN1
+Equipo C manda mensaje a D mediante la LAN1
+Equipo A manda mensaje a B mediante la LAN1
+Equipo F manda mensaje a G mediante la LAN2
+Equipo G manda mensaje a H mediante la LAN2
+Equipo H manda mensaje a I mediante la LAN2
+Equipo D manda mensaje a F mediante la LAN1 y la LAN2, pasa por el puente 1
+Equipo K manda mensaje a L mediante la LAN3
+Equipo L manda mensaje a M mediante la LAN3
+Equipo O manda mensaje a P mediante la LAN4
+Equipo P manda mensaje a Q mediante la LAN4
+Equipo M manda mensaje a N mediante la LAN3
+Equipo Q manda mensaje a R mediante la LAN4
+Equipo I manda mensaje a K mediante la LAN2 y la LAN3, pasa por el puente 1, pasa por el puente 2
+Equipo R manda mensaje a A mediante la LAN4 y la LAN1, pasa por el puente 2, pasa por el puente 1
+Equipo N manda mensaje a O mediante la LAN3 y la LAN4, pasa por el puente 2
+El orden en que cada equipo terminó de mandar mensajes fue: C,B,D,G,H,I,F,L,M,P,Q,N,R,K,A,O

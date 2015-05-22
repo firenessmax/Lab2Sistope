@@ -11,8 +11,6 @@
 #include <string>
 //definicion de clases
 
-FILE * archivo;
-std::string ordenDeTermino="El orden en que cada equipo terminó de mandar mensajes fue:";
     
 typedef struct m
 {
@@ -29,7 +27,7 @@ private:
 	Mensaje M_buffer;
 	std::string bufferPuente;
 public:
-	pthread_mutex_t Lmutex;//equivalente a declararlo e inicializarlo
+	pthread_mutex_t Lmutex;
 	pthread_mutex_t Rmutex;
 	pthread_mutex_t Wmutex;
 	int id_receptor;
@@ -118,7 +116,11 @@ void sendMessage( Equipo* emisor,Equipo* receptor, std::string msg);
 void iniciar(int cantidadMensajes);
 void instrucciones();
 
-//
+//variables globales 
+
+FILE * archivo;
+pthread_mutex_t Omutex=PTHREAD_MUTEX_INITIALIZER;
+std::string ordenDeTermino="El orden en que cada equipo terminó de mandar mensajes fue: ";
 int indices[3]={1,1,2};
 int enEjecucion=16;
 
@@ -290,6 +292,7 @@ void iniciar(int cantidadDeMensajes){
 
     B1.wait();
     B2.wait();
+    ordenDeTermino.pop_back();//elimina la ultima coma
     fprintf(archivo, "%s\n", ordenDeTermino.c_str());
 	fclose (archivo);
 
@@ -352,7 +355,16 @@ void* startEquipo(void* arg){
 		}
 	}
 	enEjecucion--;//quita uno de la ejecucion;
+	
+	pthread_mutex_lock(&Omutex);
+		int idR=eq->getID();
+		char c=64+idR+((idR>4)?(idR>8)?2:1:0);
+		ordenDeTermino+=c;
+		ordenDeTermino+=",";
+	pthread_mutex_unlock(&Omutex);
+
 	return NULL;
+	
 }
 
 void* startBridge(void* arg){
