@@ -12,6 +12,8 @@
 //definicion de clases
 
 FILE * archivo;
+std::string ordenDeTermino="El orden en que cada equipo terminó de mandar mensajes fue:";
+    
 typedef struct m
 {
 	std::string buffer;
@@ -218,7 +220,6 @@ void instrucciones() {
 void iniciar(int cantidadDeMensajes){
 
     printf("Se inicia la ejecucion\n");
-
     archivo = fopen ("salida.txt","w");
 
     LAN red1(1);
@@ -289,7 +290,7 @@ void iniciar(int cantidadDeMensajes){
 
     B1.wait();
     B2.wait();
-
+    fprintf(archivo, "%s\n", ordenDeTermino.c_str());
 	fclose (archivo);
 
 }
