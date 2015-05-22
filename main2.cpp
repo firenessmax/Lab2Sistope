@@ -14,9 +14,7 @@ typedef struct m
 	std::string buffer;
 	std::string bufferPuente;
 	int id_receptor;
-	int id_lan;;
-	int id_b1;;
-	int id_b2;
+	int id_lan;
 } Mensaje;
 
 
@@ -42,12 +40,6 @@ public:
 	}
 	int getIdLan(){
 		return this->M_buffer.id_lan;
-	}
-	int getIdB1(){
-		return this->M_buffer.id_b1;
-	}
-	int getIdB2(){
-		return this->M_buffer.id_b2;
 	}
 	int getIdReceptor(){
 		int r=M_buffer.id_receptor;
@@ -373,16 +365,6 @@ void* startEquipo(void* arg){
 					msg+=" y la LAN";
 					sprintf(numstr, "%d", eq->l->L_id);
 					msg+= numstr;
-					if(lan->getIdB1() != 0){
-						msg+=" pasando por el puente ";
-						sprintf(numstr, "%d", lan->getIdB1());
-						msg+= numstr;
-						if(lan->getIdB2() != 0){
-							msg+=" y por el puente ";
-							sprintf(numstr, "%d", lan->getIdB2());
-							msg+= numstr;
-						}
-					}
 				}
 				std::string puentes=lan->getPuentes();
 				printf( "%s%s\n", msg.c_str(), puentes.c_str());

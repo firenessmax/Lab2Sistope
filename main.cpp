@@ -6,13 +6,16 @@
 #include <getopt.h>
 //librerias cpp
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <string>
 //definicion de clases
 typedef struct m
 {
 	std::string buffer;
+	std::string bufferPuente;
 	int id_receptor;
+	int id_lan;
 } Mensaje;
 
 
@@ -20,27 +23,31 @@ class LAN//clase para el paso de mensajes
 {
 private:
 	Mensaje M_buffer;
-	std::string buffer;
+	std::string bufferPuente;
 public:
 	pthread_mutex_t Lmutex;//equivalente a declararlo e inicializarlo
 	pthread_mutex_t Rmutex;
 	pthread_mutex_t Wmutex;
 	int id_receptor;
-	LAN();
+	int L_id;
+	LAN(int id);
 	void loadMessage(Mensaje M_buffer){
 		this->M_buffer=M_buffer;
-	}
-	void loadMessage(int id_receptor, std::string msg){
-		this->id_receptor=id_receptor;this->buffer=msg;
 	}
 	int hayMenssage(int eq_id){return eq_id==this->M_buffer.id_receptor;}
 	std::string getMessage(){
 		M_buffer.id_receptor=0;
 		return this->M_buffer.buffer;
 	}
+	int getIdLan(){
+		return this->M_buffer.id_lan;
+	}
 	int getIdReceptor(){
 		int r=M_buffer.id_receptor;
 		return r;
+	}
+	std::string getPuentes(){
+		return M_buffer.bufferPuente;
 	}
 
 	//bloquear LAN
@@ -164,9 +171,11 @@ int main(int argc, char *argv[]){
 }
 
 //clases
-LAN::LAN(){
+LAN::LAN(int id){
 	this->M_buffer.id_receptor=0;
+	this->M_buffer.id_lan=0;
 	this->id_receptor=0;
+	this->L_id=id;
 	pthread_mutex_init(&(this->Lmutex), NULL);
 	pthread_mutex_init(&(this->Rmutex), NULL);
 	pthread_mutex_init(&(this->Wmutex), NULL);
@@ -208,7 +217,14 @@ void iniciar(int cantidadDeMensajes){
 
     printf("Se inicia la ejecucion\n");
 
-    LAN red1,red2,red3,red4,red5;
+    std::ofstream archivo;
+    archivo.open ("salida.txt");
+
+    LAN red1(1);
+    LAN red2(2);
+    LAN red3(3);
+    LAN red4(4);
+    LAN red5(5);
     int dirsB1[16]={0,0,0,0,  1,1,1,1,   2,2,2,2,   2,2,2,2};
     int dirsB2[16]={2,2,2,2,   2,2,2,2   ,0,0,0,0,  1,1,1,1};
     Bridge B1 (1,&red1,&red2,&red5,dirsB1);
@@ -274,13 +290,14 @@ void iniciar(int cantidadDeMensajes){
     B2.wait();
 
 
-
+    archivo.close();
 
 }
 //hilos
 void* startEquipo(void* arg){
 	Equipo* eq= (Equipo*) arg;
 	LAN* lan=eq->l;
+	char numstr[21];
 	int i=0;
 	while(eq->m_enviados||eq->m_recibidos){
 		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
@@ -290,14 +307,20 @@ void* startEquipo(void* arg){
 				if((i+1)%16==0)i++;
 				int id_receptor=(idR+i)%16+1;//<<-- el modulo indica el numero maximo de nodos
 				if(id_receptor==17)printf("%d\n", i);
-				std::string s="";
+				std::string s="Equipo ";
 				int id=eq->getID();
 				s+=(char)(64+id+((id>4)?(id>8)?2:1:0));
-				s+="->";
+				s+=" manda mensaje a ";
 				Mensaje m;
 				m.id_receptor=id_receptor;
 				m.buffer=s;
 				char c=64+id_receptor+((id_receptor>4)?(id_receptor>8)?2:1:0);
+				s+=c;
+				s+=" mediante la LAN";
+				sprintf(numstr, "%d", eq->l->L_id);
+				s+= numstr;
+				m.buffer=s;
+				m.id_lan=eq->l->L_id;
 				lan->loadMessage(m);
 				//printf( "(%s%c)\n", s.c_str(),c );
 				i++;
@@ -309,9 +332,17 @@ void* startEquipo(void* arg){
 			
 			if( lan->hayMenssage( eq->getID() ) ){
 				std::string msg=lan->getMessage();
+				int id_lan=lan->getIdLan();
 				eq->m_recibidos--;
 				int id=eq->getID();
-				printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
+				if(id_lan != eq->l->L_id){
+					msg+=" y la LAN";
+					sprintf(numstr, "%d", eq->l->L_id);
+					msg+= numstr;
+				}
+				std::string puentes=lan->getPuentes();
+				printf( "%s%s\n", msg.c_str(), puentes.c_str());
+				//printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
 			pthread_mutex_unlock(&(lan->Rmutex));
@@ -339,6 +370,7 @@ void* startBridge(void* arg){
 				if(!pthread_mutex_trylock(&(lan->Wmutex))){
 					//eq->m_enviados--;
 					//printf("B%d(%s%c)\n", b->B_id, m.buffer.c_str(),(char)(64+m.id_receptor));
+						m.bufferPuente+=(b->B_id==1)?", pasa por el puente 1":", pasa por el puente 2";
 					mensajes--;
 					lan->loadMessage(m);
 				}else{
@@ -366,6 +398,7 @@ void* startBridge(void* arg){
 						Mensaje m;
 						m.buffer=s;
 						m.id_receptor=id_R;
+						m.bufferPuente=lan->getPuentes();
 						b->encolarMensaje(m);
 						//printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?2:1:0) ));
 						pthread_mutex_unlock(&(b->redes[i]->Wmutex));
