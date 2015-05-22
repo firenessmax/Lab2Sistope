@@ -10,6 +10,8 @@
 #include <vector>
 #include <string>
 //definicion de clases
+
+FILE * archivo;
 typedef struct m
 {
 	std::string buffer;
@@ -217,8 +219,7 @@ void iniciar(int cantidadDeMensajes){
 
     printf("Se inicia la ejecucion\n");
 
-    std::ofstream archivo;
-    archivo.open ("salida.txt");
+    archivo = fopen ("salida.txt","w");
 
     LAN red1(1);
     LAN red2(2);
@@ -289,8 +290,7 @@ void iniciar(int cantidadDeMensajes){
     B1.wait();
     B2.wait();
 
-
-    archivo.close();
+	fclose (archivo);
 
 }
 //hilos
@@ -341,7 +341,8 @@ void* startEquipo(void* arg){
 					msg+= numstr;
 				}
 				std::string puentes=lan->getPuentes();
-				printf( "%s%s\n", msg.c_str(), puentes.c_str());
+				fprintf (archivo, "%s%s\n", msg.c_str(), puentes.c_str());
+				//printf( "%s%s\n", msg.c_str(), puentes.c_str());
 				//printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
