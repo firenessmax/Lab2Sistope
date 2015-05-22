@@ -24,19 +24,23 @@ typedef struct m
 class LAN//clase para el paso de mensajes
 {
 private:
+	//buffer mensaje
 	Mensaje M_buffer;
-	std::string bufferPuente;
 public:
-	pthread_mutex_t Lmutex;
+	//semaforos de escritura y lectura
 	pthread_mutex_t Rmutex;
 	pthread_mutex_t Wmutex;
+	//variables para identificacion
 	int id_receptor;
 	int L_id;
+	//constructor
 	LAN(int id);
 	void loadMessage(Mensaje M_buffer){
 		this->M_buffer=M_buffer;
 	}
+	//metodo para saber si el equipo que consulta es el receptor del mensaje en la lan
 	int hayMenssage(int eq_id){return eq_id==this->M_buffer.id_receptor;}
+	//metodo para obtener el mensaje
 	std::string getMessage(){
 		M_buffer.id_receptor=0;
 		return this->M_buffer.buffer;
@@ -48,49 +52,57 @@ public:
 		int r=M_buffer.id_receptor;
 		return r;
 	}
+	//metodo que obtiene los puentes por los que a pasado
 	std::string getPuentes(){
 		return M_buffer.bufferPuente;
 	}
-
-	//bloquear LAN
-	int tomarLinea(){return pthread_mutex_trylock(&(this->Lmutex));}
-	void soltarLinea(){pthread_mutex_unlock(&(this->Lmutex));}
-	//estas funciones equivalen a lock y unlock pero para una LAN especifica permitiendo declarar secciones criticas de LAN
 };
 class Equipo{
 	private:
-		
-		std::string nombre;
+		//identificacion del equipo
 		int E_id;
+		//hilo que controla el equipo
 		pthread_t thread;
 	public:
+		//contador inverso de cantidad de enviados y recibidos
 		int m_recibidos;
 		int m_enviados;
+		//red a la cual está conectado
 		LAN* l;
+		//constructor
 		Equipo(int id,LAN* l){
 			this->E_id=id;
-			//char c= 64+id+((id>4)?(id>8)?2:1:0);
-			//printf("%d:%c\n", id,c);
 			this->l=l;
 		} 
+		//prototipos de metodos para trabajo conthread
 		void start(int cantMensajes);
 		void wait(){pthread_join(this->thread, NULL);}
-		void reciveMessage();//irr
+		//getter
 		int getID(){return this->E_id;}
 };
 
 class Bridge{
+	private:
+		//hilo controlador
 		pthread_t thread;
+		//cola de mensajes para evitar el deadlock
 		std::vector<Mensaje> cola;
 	public:
+		//informacion del puente
 		int B_id;
+		//contadores inversos
 		int m_para_enviar;
 		int m_enviados;
+		//variable para distintas implementaciones
 		int lanUsadas;
+		//direccion de a cual red debe enviar los mensajes que toma
 		int dir[16];
+		//redes a las cuales puede estar conectado
 		LAN* redes[3];
+		//constructores
 		Bridge(int id,LAN* l1,LAN* l2);
 		Bridge(int id,LAN* l1,LAN* l2,LAN* l3,int dirs[]);
+		//metodos para el manejo de la cola
 		void encolarMensaje(Mensaje m){this->cola.push_back(m);}
 		Mensaje tomarMensaje(){
 			Mensaje m=this->cola.front();
@@ -98,30 +110,26 @@ class Bridge{
 			return m;
 		}
 		void devolverMensaje(Mensaje m){this->cola.insert(this->cola.begin(),m);}
-		int hayMensajes(){
-			//if(this->cola.size()>0)printf("%d\n",(int)this->cola.size());
-			return this->cola.size()>0;}
+		//comprobador de si la cola no está vacia
+		int hayMensajes(){return this->cola.size()>0;}
+		//prototipos de metodos para trabajo conthread
 		void start();
 		void wait(){pthread_join(this->thread, NULL);}
 };
 
 //prototipo de funciones
-//la idea es hacer que las funciones que daban referencias cruzadas hacerlas al estilo C 
-
-
+	//funciones para los thread
 void* startEquipo(void* arg);
 void* startBridge(void* arg);
-void sendMessage( Equipo* emisor,Equipo* receptor, std::string msg);
-
+	//funciones llamadas por getopt
 void iniciar(int cantidadMensajes);
 void instrucciones();
 
 //variables globales 
-
 FILE * archivo;
 pthread_mutex_t Omutex=PTHREAD_MUTEX_INITIALIZER;
 std::string ordenDeTermino="El orden en que cada equipo terminó de mandar mensajes fue: ";
-int indices[3]={1,1,2};
+	//indica la cantidad de equipos en ejecucion;
 int enEjecucion=16;
 
 int main(int argc, char *argv[]){ 
@@ -177,26 +185,28 @@ int main(int argc, char *argv[]){
 }
 
 //clases
+	//constructor de LAN
 LAN::LAN(int id){
 	this->M_buffer.id_receptor=0;
 	this->M_buffer.id_lan=0;
 	this->id_receptor=0;
 	this->L_id=id;
-	pthread_mutex_init(&(this->Lmutex), NULL);
 	pthread_mutex_init(&(this->Rmutex), NULL);
 	pthread_mutex_init(&(this->Wmutex), NULL);
 }
+	//inicia el hilo del eqipo
 void Equipo::start(int cantMensajes){
 	this->m_recibidos=cantMensajes;
 	this->m_enviados=cantMensajes;
-	int rc 	= 	pthread_create(&this->thread, NULL,startEquipo, (void*) this );
-	//printf("Hello World! It's me, thread with argument %d!\n", this->E_id);
+
+	int rc 	= 	pthread_create(&this->thread, NULL,startEquipo, (void*) this );//se pasa como parametro el propio objeto
 }
 void Bridge::start(){
-	int rc 	= 	pthread_create(&this->thread, NULL,startBridge, (void*) this  );
-	//printf("Hello World! It's me, thread with argument %d!\n", this->B_id);
+	int rc 	= 	pthread_create(&this->thread, NULL,startBridge, (void*) this  );//se pasa como parametro el propio objeto
 }
+//constuctores del puente
 Bridge::Bridge(int id,LAN* l1,LAN* l2){
+
 	this->B_id=id;
 	this->lanUsadas=2;
 	this->redes[0]=l1;
@@ -213,8 +223,7 @@ Bridge::Bridge(int id,LAN* l1,LAN* l2,LAN* l3,int dirs[]){
 		this->dir[i]=dirs[i];
 	}
 }
-//funciones
-
+//definicion de funciones
 void instrucciones() {
     printf("Para utilizar el programa, es necesario escribir: \n./nombrePrograma.o --on cantidadDeMensajes\n");
 }
@@ -223,16 +232,19 @@ void iniciar(int cantidadDeMensajes){
 
     printf("Se inicia la ejecucion\n");
     archivo = fopen ("salida.txt","w");
-
+    //se declaran las redes
     LAN red1(1);
     LAN red2(2);
     LAN red3(3);
     LAN red4(4);
     LAN red5(5);
+    //direcciones a las cuales se debe enviar los mensajes por cada puente
     int dirsB1[16]={0,0,0,0,  1,1,1,1,   2,2,2,2,   2,2,2,2};
     int dirsB2[16]={2,2,2,2,   2,2,2,2   ,0,0,0,0,  1,1,1,1};
+    //se declaran los puentes
     Bridge B1 (1,&red1,&red2,&red5,dirsB1);
     Bridge B2 (2,&red3,&red4,&red5,dirsB2);
+    //se inician sis thread
     B1.start();
     B2.start();
     //red1
@@ -255,7 +267,7 @@ void iniciar(int cantidadDeMensajes){
     Equipo n(14,&red4);
     Equipo o(15,&red4);
     Equipo p(16,&red4);
-    //return;
+    //se inician los thread de cada equipo
     a.start(cantidadDeMensajes);
     b.start(cantidadDeMensajes);
     c.start(cantidadDeMensajes);
@@ -272,7 +284,7 @@ void iniciar(int cantidadDeMensajes){
     n.start(cantidadDeMensajes);
     o.start(cantidadDeMensajes);
     p.start(cantidadDeMensajes);
-
+    //se esperan los hilos para sincronizacion
     a.wait();
     b.wait();
     c.wait();
@@ -292,6 +304,7 @@ void iniciar(int cantidadDeMensajes){
 
     B1.wait();
     B2.wait();
+
     ordenDeTermino.pop_back();//elimina la ultima coma
     fprintf(archivo, "%s\n", ordenDeTermino.c_str());
 	fclose (archivo);
@@ -299,18 +312,23 @@ void iniciar(int cantidadDeMensajes){
 }
 //hilos
 void* startEquipo(void* arg){
-	Equipo* eq= (Equipo*) arg;
+	Equipo* eq= (Equipo*) arg;//se obtiene el equipo
+	//se obtiene la cola
 	LAN* lan=eq->l;
 	char numstr[21];
 	int i=0;
+	//se ejecuta mientras tenga mensajes para recibir y para enviar
 	while(eq->m_enviados||eq->m_recibidos){
-		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){
+		//si le quedan mensajes para imprimir y puede tomar la linea
+		if(eq->m_enviados&&!pthread_mutex_trylock(&(lan->Rmutex))){//se usa trylock para que no detenga la ejecucion y pueda leer en caso de no poder escribir
+			//puede escribir solo si no hay otro mensaje en el buffer∫
 			if(!pthread_mutex_trylock(&(lan->Wmutex))){
+				//se reduce los mensajes a enviar
 				eq->m_enviados--;
 				int idR=eq->getID();
-				if((i+1)%16==0)i++;
+				if((i+1)%16==0)i++;//se salta un numero para que no se envie mensajes a si mismo
 				int id_receptor=(idR+i)%16+1;//<<-- el modulo indica el numero maximo de nodos
-				if(id_receptor==17)printf("%d\n", i);
+				//<<-- formateo de el mensaje a enviar
 				std::string s="Equipo ";
 				int id=eq->getID();
 				s+=(char)(64+id+((id>4)?(id>8)?2:1:0));
@@ -321,45 +339,52 @@ void* startEquipo(void* arg){
 				char c=64+id_receptor+((id_receptor>4)?(id_receptor>8)?2:1:0);
 				s+=c;
 				s+=" mediante la LAN";
+
 				sprintf(numstr, "%d", eq->l->L_id);
 				s+= numstr;
 				m.buffer=s;
 				m.id_lan=eq->l->L_id;
+				//se envia el mensaje
 				lan->loadMessage(m);
-				//printf( "(%s%c)\n", s.c_str(),c );
-				i++;
+				i++;//contador aumentado para enviar el siguiente
 			}
-			pthread_mutex_unlock(&(lan->Rmutex));
-			continue;
+			pthread_mutex_unlock(&(lan->Rmutex));//se suelta el semaforo de lectura pero no el de escritura
+			continue;//se salta para darle oportunidad de cambio de contexto
 		}
+		//si puede recibir y puede tomar la linea entonces:
 		if(eq->m_recibidos&&!pthread_mutex_trylock(&(lan->Rmutex))){
-			
+			//si el mensaje es para este equipo entonces:
 			if( lan->hayMenssage( eq->getID() ) ){
+				//obtengo el messaje
 				std::string msg=lan->getMessage();
+				//obtengo el id de la lan a utilizar
 				int id_lan=lan->getIdLan();
+				//se reduce la cantidad que debe recibir
 				eq->m_recibidos--;
 				int id=eq->getID();
+				//se formatea la lan
 				if(id_lan != eq->l->L_id){
 					msg+=" y la LAN";
 					sprintf(numstr, "%d", eq->l->L_id);
 					msg+= numstr;
 				}
+				//se obtienen los puentes por los que a pasado el mensaje
 				std::string puentes=lan->getPuentes();
+
 				fprintf (archivo, "%s%s\n", msg.c_str(), puentes.c_str());
-				//printf( "%s%s\n", msg.c_str(), puentes.c_str());
-				//printf("%s%c;\n",&msg[0u],(char)( 64+id+((id>4)?(id>8)?2:1:0) ));
+				//se desbloquea de escritura ya que el mensaje se a obtenido
 				pthread_mutex_unlock(&(lan->Wmutex));
 			}
+			//se desbloquea la lectura
 			pthread_mutex_unlock(&(lan->Rmutex));
-
 		}
 	}
 	enEjecucion--;//quita uno de la ejecucion;
-	
+	//se bloquea para evitar problemas de concurrectia
 	pthread_mutex_lock(&Omutex);
 		int idR=eq->getID();
 		char c=64+idR+((idR>4)?(idR>8)?2:1:0);
-		ordenDeTermino+=c;
+		ordenDeTermino+=c;//<<-- se agrega identificador a los equipos finalizados
 		ordenDeTermino+=",";
 	pthread_mutex_unlock(&Omutex);
 
@@ -368,61 +393,55 @@ void* startEquipo(void* arg){
 }
 
 void* startBridge(void* arg){
-	Bridge* b=(Bridge*) arg;
-	//entrada1
-	int mensajes=b->m_para_enviar;
-
+	Bridge* b=(Bridge*) arg;//se castea el propio puente
 	while(enEjecucion){//mientras existan equipos en ejecucion
 		//escritura
 		if(b->hayMensajes()){//si hay mensajes en la cola
-			//printf("B%d:%d\n",b->B_id,mensajes);
-			Mensaje m=b->tomarMensaje();
+			Mensaje m=b->tomarMensaje();//se toma el mensaje de la cola
 			int lanDestino=b->dir[m.id_receptor-1];
 			LAN* lan=b->redes[lanDestino];
-			if(!pthread_mutex_trylock(&(lan->Rmutex))){
-				//printf("disponiendose a repetir\n");
-				if(!pthread_mutex_trylock(&(lan->Wmutex))){
-					//eq->m_enviados--;
-					//printf("B%d(%s%c)\n", b->B_id, m.buffer.c_str(),(char)(64+m.id_receptor));
-						m.bufferPuente+=(b->B_id==1)?", pasa por el puente 1":", pasa por el puente 2";
-					mensajes--;
+			if(!pthread_mutex_trylock(&(lan->Rmutex))){//si puede tomar la linea para lectura
+				if(!pthread_mutex_trylock(&(lan->Wmutex))){//si puede tomar la linea para escritura
+					//se agrega que paso por el puente
+					m.bufferPuente+=(b->B_id==1)?", pasa por el puente 1":", pasa por el puente 2";
+					//se carga el mensaje
 					lan->loadMessage(m);
 				}else{
-					//printf("oow\n");
-					b->encolarMensaje(m);//devolverlo
+					b->encolarMensaje(m);//devolverlo porque no se pudo enviar
 				}
 				pthread_mutex_unlock(&(lan->Rmutex));
 			}else{
-				b->encolarMensaje(m);//devolverlo
+				b->encolarMensaje(m);//devolverlo porque no se pudo leer la linea
 			}
 		}	
-		//lectura
+		//lectura lee itrativamente las tres lan conectadas
 		for (int i = 0; i < 3; ++i)
 		{
 			int id_R=b->redes[i]->getIdReceptor();
 			if(id_R){
-
-				//printf("(?)->%c\n",(char)(id_R+64));
+				//si puede tomar la linea
 				if(!pthread_mutex_trylock(&(b->redes[i]->Rmutex))){
-					//printf("dir[C]=%d\n",b->dir[id_R]);
+					//
 					LAN* lan=b->redes[i];
 					if(b->dir[id_R-1]!=i)//deberia comprobarse para todos los que no pertenecen a la red 0
 					{	
+						//se obtiene el mensaje
 						std::string s=lan->getMessage();
-						Mensaje m;
+						Mensaje m;// se crea una nuesva estructira mensaje
 						m.buffer=s;
 						m.id_receptor=id_R;
 						m.bufferPuente=lan->getPuentes();
-						b->encolarMensaje(m);
-						//printf("encolando: %s%c\n",&s[0u],(char)(64+id_R+((id_R>4)?(id_R>8)?2:1:0) ));
+						b->encolarMensaje(m);//se agrega el mensaje a la cola para ser enviado
+						//se desbloquea la linea para evitar deadlock
 						pthread_mutex_unlock(&(b->redes[i]->Wmutex));
 					}
+					//se suelta la linea para lectura
 					pthread_mutex_unlock(&(b->redes[i]->Rmutex));
 				}
 			}
 		}
 		
 	}
-	//printf("Fin del Bridge B%d\n", b->B_id);
+	//el puente finaliza una vez todos los equipos terminan de ejecutarse
 	return NULL;
 }
